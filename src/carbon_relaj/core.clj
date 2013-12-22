@@ -223,25 +223,24 @@ async channel, and write to disk, rotating files as needed.  This
 can't be called from a go block because it blocks.  It's a no-go
 block.  See, that's funny.
 "
-  (def file-ref-dict (ref (make-empty-file-map config (System/currentTimeMillis))))
+  (def file-dict (make-empty-file-map config (System/currentTimeMillis)))
   (loop [[data chosen-channel] (alts!! [(timeout 250) spool-channel])] ; XXX make timeout tunable
 ;;     (if-not (nil? data)
 ;;       (do
 ;;         (println "Not nil: " data)
 ;;         (println (json/write-str data))
-;;         (write-data-to-file config file-ref-dict data))
+;;         (write-data-to-file config file-dict data))
 ;;       (println "data was nil"))
     (if-not (nil? data)
-      (write-data-to-file config file-ref-dict data))
-    (if (and (not= (@file-ref-dict :file-name) "") (file-due-for-rotation config @file-ref-dict))
+      (write-data-to-file config file-dict data))
+    (if (and (not= (file-dict :file-name) "") (file-due-for-rotation config file-dict))
       (do
-        (rotate-file @file-ref-dict config) ; XXX this isn't happening.
-        (let [old-file (@file-ref-dict :writable-file)]
-          (dosync
-           (alter file-ref-dict assoc-in [:writable-file] nil)
-           (alter file-ref-dict assoc-in [:file-name] ""))
-          (.close old-file)))) ;; (println (str "file-ref-dict has been emptied and is now: " (seq @file-ref-dict)))))
-    (recur (alts!! [(timeout 250) spool-channel]))))
+        (rotate-file file-dict config) ; XXX this isn't happening.
+        (let [old-file (file-dict :writable-file)]
+           (update-in file-dict [:writable-file] nil)
+           (update-in file-dict [:file-name] ""))
+          (.close (old-file :writable-file))))) ;; (println (str "file-dict has been emptied and is now: " (seq @file-dict)))))
+    (recur (alts!! [(timeout 250) spool-channel])))
 
 
 (defn read-carbon-line [line-mapping]
@@ -290,8 +289,8 @@ can log information about the connection.
                         (recur))))]
     (create-server 9090 carbon-spooler)))
 
-; Run the writer on its own thread.
-(on-thread #(write-metric-to-file config-map))
 
 (defn -main []
+ ; Run the writer on its own thread.
+  (on-thread #(write-metric-to-file config-map))
   (carbon-receiver))
