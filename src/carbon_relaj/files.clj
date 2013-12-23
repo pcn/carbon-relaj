@@ -6,6 +6,11 @@
             [me.raynes.fs :as fs]
             [clojure.data.json :as json]))
 
+(defn link [src target]
+  "The java createLink does things in the opposite order
+from the system call link(2).  What.  The.  Fuck."
+  (fs/link target src))
+
 (defn make-time-map
   ([]
      (make-time-map (System/currentTimeMillis)))
@@ -35,19 +40,23 @@ to know about rotation time, etc."
 
 (defn relink-file-on-disk [config f]
   "links the file to a new file or set of filenames"
-  (for [new-path (config :send-dir)]
-    (let [current-name (f :file-name)
-          base-name (fs/base-name current-name)
-          new-name (str new-path "/" base-name)]
-      (println "WHADDUP")
-      (println "Trying to rotate " current-name " to " new-name)
-      (fs/link current-name new-name))))
+  (println "I think I should be acting on this: " config)
+  (doall
+   (for [new-dir (config :target-list)]
+     (do
+       (println "New dir is " new-dir)
+       (let [current-name (f :file-name)
+             base-name (fs/base-name current-name)
+             new-name (str (config :send-dir) "/" new-dir "/" base-name)]
+         (println "WHADDUP")
+         (println "Trying to rotate " current-name " to " new-name)
+         (link current-name new-name))))))
 
 (defn rotate-file-map [config file-map]
   "If a file-map is due for rotation, rotate it and return a new empty file map"
   (if (and (not= (file-map :file-name) "") (file-needs-rotation? config file-map))
     (do
-      (relink-file-on-disk file-map config) ; XXX this isn't happening.
+      (relink-file-on-disk config file-map) ; XXX this isn't happening.
       (.close (file-map :writable-file))
       (make-empty-file-map config (make-time-map)))
     file-map))

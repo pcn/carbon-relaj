@@ -133,14 +133,13 @@ This is broken up into a vector of [string float float]
 The :socket is provided so that in case of an error, the error can be
 tracked to the remote host and port that provided the bad metric."
   (if (empty? (line-mapping :line))
-                                        ; TODO: log an error about an invalid metric.
+                                        ; TODO: detect more bad metric values
     (warn "Received an empty line from " (.getInetAddress (line-mapping :socket)))
     (let [splitup (clojure.string/split (line-mapping :line) #"\s+" 3)]
       (if (not= (count splitup) 3)
         (warn "Received an invalid line \"" (line-mapping :line) "\" from "
               (.getInetAddress (line-mapping :socket)))
         (do
-          ;; TODO: check the types of the value of metrics are not NaN inf etc.
           (async/go (async/>! spool-channel
                               [(splitup 0) (read-string (splitup 1))
                                (read-string (splitup 2))])))))))
