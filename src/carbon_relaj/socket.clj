@@ -10,7 +10,7 @@
            (clojure.lang LineNumberingPushbackReader))
   (:use [clojure.tools.logging :only (debug info warn error)]))
 
-;; From server-socket.  TODO: consider putting this in another namespace.
+;; From server-socket.
 (defn on-thread [f]
   (doto (Thread. ^Runnable f)
     (.start)))
