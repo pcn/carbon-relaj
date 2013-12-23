@@ -47,12 +47,12 @@
 
 (defn create-server
   "Creates a server socket on port. Upon accept, a new thread is
-created which calls:
+   created which calls:
 
- (fun input-stream output-stream)
+     (fun input-stream output-stream)
 
-Optional arguments support specifying a listen backlog and binding
-to a specific endpoint."
+   Optional arguments support specifying a listen backlog and binding
+   to a specific endpoint."
   ([port fun backlog ^InetAddress bind-addr]
      (create-server-aux fun (ServerSocket. port backlog bind-addr)))
   ([port fun backlog]

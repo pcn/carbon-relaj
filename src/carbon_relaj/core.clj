@@ -100,17 +100,16 @@ done
 (defn write-metric-to-file [config]
   "Pulls a metric off of the channel spool-channel which is in-scope.
 
-Each metric is a vector of [metric (value timestamp)]
-It will be written out as a 1-line json document in a file with
-many such lines.  The 1-line document is a defensive measure since
-the server has to accept a lot of possibly strange things on the wire.
-Using json will encode it in a readable manner (in most cases).
+   Each metric is a vector of [metric (value timestamp)]
+   It will be written out as a 1-line json document in a file with
+   many such lines.  The 1-line document is a defensive measure since
+   the server has to accept a lot of possibly strange things on the wire.
+   Using json will encode it in a readable manner (in most cases).
 
-This needs to be run on an independent thread that will read from an
-async channel, and write to disk, rotating files as needed.  This
-can't be called from a go block because it blocks.  So it's a no-go
-block.  See, that's funny.
-"
+   This needs to be run on an independent thread that will read from an
+   async channel, and write to disk, rotating files as needed.  This
+   can't be called from a go block because it blocks.  So it's a no-go
+   block.  See, that's funny."
                                         ; XXX make timeout configurable
   (loop [[data chosen-channel] (async/alts!! [(async/timeout 250) spool-channel])
          file-map (files/make-empty-file-map config (files/make-time-map))]
@@ -124,14 +123,14 @@ block.  See, that's funny.
 
 (defn read-carbon-line [line-mapping]
   "line-mapping is a map containing the keys :line and :socket.
-The line is a whitespace-separated string that looks like this:
+   The line is a whitespace-separated string that looks like this:
 
-  metric-name value timestamp\\n
+     metric-name value timestamp\\n
 
-This is broken up into a vector of [string float float]
+   This is broken up into a vector of [string float float]
 
-The :socket is provided so that in case of an error, the error can be
-tracked to the remote host and port that provided the bad metric."
+   The :socket is provided so that in case of an error, the error can be
+   tracked to the remote host and port that provided the bad metric."
   (if (empty? (line-mapping :line))
                                         ; TODO: detect more bad metric values
     (warn "Received an empty line from " (.getInetAddress (line-mapping :socket)))
@@ -150,10 +149,9 @@ tracked to the remote host and port that provided the bad metric."
 
 (defn carbon-receiver [config]
   "Listen on a port, and accept carbon line-protocol data.  For each connected socket
-when a line is read, feed the data to an async channel as a vector
-of [message (remote-address remote-port)] so that downstream functions
-can log information about the connection.
-"
+   when a line is read, feed the data to an async channel as a vector
+   of [message (remote-address remote-port)] so that downstream functions
+   can log information about the connection."
   (letfn [(carbon-spooler [in out socket]
             (binding [*in* (BufferedReader. (InputStreamReader. in))
                       *out* (OutputStreamWriter. out)]

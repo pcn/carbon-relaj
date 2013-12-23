@@ -8,7 +8,7 @@
 
 (defn link [src target]
   "The java createLink does things in the opposite order
-from the system call link(2).  What.  The.  Fuck."
+   from the system call link(2).  What.  The.  Fuck."
   (fs/link target src))
 
 (defn make-time-map
@@ -26,7 +26,7 @@ from the system call link(2).  What.  The.  Fuck."
 
 (defn make-empty-file-map
   "The new spool file mapping, containing the info I need
-to know about rotation time, etc."
+   to know about rotation time, etc."
   ([config the-time]
      (let [temp-dir (config :temp-dir)]
        {:writable-file nil
@@ -62,7 +62,7 @@ to know about rotation time, etc."
 
 (defn update-file-map [config file-map]
   "Call this to return a file map - either a new one if there isn't one,
-or the current one if it's in use"
+   or the current one if it's in use"
   (if (nil? (file-map :writable-file))
     (let [the-time (make-time-map)
           this-thread (.getId (Thread/currentThread))
@@ -75,7 +75,7 @@ or the current one if it's in use"
 
 (defn write-json-to-file [config prior-file-map data]
   "This will write data to a file.  The file name contains the thread-id
-to allow for multiple writer threads in the future."
+   to allow for multiple writer threads in the future."
   (let [this-file-map (update-file-map config prior-file-map)]
     (.write (this-file-map :writable-file) (str (json/write-str data) "\n"))
     this-file-map))
