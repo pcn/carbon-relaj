@@ -155,14 +155,15 @@ of [message (remote-address remote-port)] so that downstream functions
 can log information about the connection.
 "
   (letfn [(carbon-spooler [in out socket]
-                    (binding [*in* (BufferedReader. (InputStreamReader. in))
-                              *out* (OutputStreamWriter. out)]
-                      (loop []
-                        (let [input (read-line)]
-;                          (print input "\n")
-                          (async/go (async/>! carbon-channel { :line input :socket socket}))
-                          (flush))
-                        (recur))))]
+            (binding [*in* (BufferedReader. (InputStreamReader. in))
+                      *out* (OutputStreamWriter. out)]
+              (loop []
+                (let [input (read-line)]
+                  (if-not (nil? input)
+                    (do
+                      (println input "\n")
+                      (async/>!! carbon-channel { :line input :socket socket})))
+                  (recur)))))]
     (relay-socket/create-server (config :listen-port) carbon-spooler)))
 
 

@@ -44,12 +44,11 @@ to know about rotation time, etc."
   (doall
    (for [new-dir (config :target-list)]
      (do
-       (println "New dir is " new-dir)
+       ; XXX add error checking here.
+       ; XXX and recovery from the inevitable errors.
        (let [current-name (f :file-name)
              base-name (fs/base-name current-name)
              new-name (str (config :send-dir) "/" new-dir "/" base-name)]
-         (println "WHADDUP")
-         (println "Trying to rotate " current-name " to " new-name)
          (link current-name new-name))))))
 
 (defn rotate-file-map [config file-map]
