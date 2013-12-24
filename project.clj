@@ -7,7 +7,8 @@
                  [fs "1.3.3"]
                  [clj-time "0.6.0"]
                  [me.raynes/fs "1.4.5"]
-                 [com.cemerick/pomegranate "0.2.0"]]
+                 [com.cemerick/pomegranate "0.2.0"]
+                 [aleph "0.3.0"]]
   ; :main ^:skip-aot carbon-relaj.core
   :main carbon-relaj.core)
 ;   :target-path "target/%s"

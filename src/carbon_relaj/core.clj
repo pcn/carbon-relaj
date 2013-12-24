@@ -9,7 +9,10 @@
         [clojure.tools.logging :only (debug info warn error)])
   (:require [clojure.core.async :as async]
             [carbon-relaj.files :as files]
-            [carbon-relaj.socket :as relay-socket]))
+            [lamina.core :as lamina]
+            [aleph.tcp :as aleph]
+            [gloss.core :as gloss]))
+
 
 ; First check that we're using a jvm that gives fs the ability to do
 ; hard links.
@@ -147,26 +150,41 @@ done
  (while true (read-carbon-line (async/<! carbon-channel))))
 
 
-(defn carbon-receiver [config]
-  "Listen on a port, and accept carbon line-protocol data.  For each connected socket
-   when a line is read, feed the data to an async channel as a vector
-   of [message (remote-address remote-port)] so that downstream functions
-   can log information about the connection."
-  (letfn [(carbon-spooler [in out socket]
-            (binding [*in* (BufferedReader. (InputStreamReader. in))
-                      *out* (OutputStreamWriter. out)]
-              (loop []
-                (let [input (read-line)]
-                  (if-not (nil? input)
-                    (do
-                      (println input "\n")
-                      (async/>!! carbon-channel { :line input :socket socket})))
-                  (recur)))))]
-    (relay-socket/create-server (config :listen-port) carbon-spooler)))
 
+
+;; (defn carbon-receiver [config]
+;;   "Listen on a port, and accept carbon line-protocol data.  For each connected socket
+;;    when a line is read, feed the data to an async channel as a vector
+;;    of [message (remote-address remote-port)] so that downstream functions
+;;    can log information about the connection."
+;;   (letfn [(carbon-spooler [in out socket]
+;;             (binding [*in* (BufferedReader. (InputStreamReader. in))
+;;                       *out* (OutputStreamWriter. out)]
+;;               (loop []
+;;                 (let [input (read-line)]
+;;                   (if-not (nil? input)
+;;                     (do
+;;                       (println input "\n")
+;;                       (async/>!! carbon-channel { :line input :socket socket})))
+;;                   (recur)))))]
+;;     (relay-socket/create-server (config :listen-port) carbon-spooler)))
+
+
+(defn carbon-receiver [ch client-info]
+  (lamina/receive-all ch
+               #(async/>!! carbon-channel { :line % :client-info client-info})))
+    ; #(enqueue ch (str "You said " %))))
+
+
+
+;; From server-socket.
+(defn on-thread [f]
+  (doto (Thread. ^Runnable f)
+    (.start)))
 
 (defn -main []
  ; Run the writer on its own thread.
-  (relay-socket/on-thread #(write-metric-to-file config-map))
+  (on-thread #(write-metric-to-file config-map))
   (println "HERE")
-  (carbon-receiver config-map))
+  (aleph/start-tcp-server carbon-receiver {:port (config-map :listen-port)
+                                     :frame (gloss.core/string :utf-8 :delimiters ["\n"])}))
