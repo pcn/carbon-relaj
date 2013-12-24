@@ -1,6 +1,8 @@
 ;; initially based on http://stackoverflow.com/questions/1223352/writing-a-multiplexing-server-in-clojure
 ;; and https://github.com/cymen/clojure-socket-echo/blob/master/src/clojure_socket_echo/core.clj
 
+;; XXX maybe switch to an alternative socket server, e.g. https://github.com/ztellman/aleph
+
 (ns carbon-relaj.socket
   (:gen-class)
   (:import (java.net InetAddress ServerSocket Socket SocketException)
