@@ -40,7 +40,7 @@
 
 (defn relink-file-on-disk [config f]
   "links the file to a new file or set of filenames"
-  (println "I think I should be acting on this: " config)
+  (debug "I think I should be acting on this: " config)
   (doall
    (for [new-dir (config :target-list)]
      (do

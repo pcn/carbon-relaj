@@ -9,6 +9,7 @@
         [clojure.tools.logging :only (debug info warn error)])
   (:require [clojure.core.async :as async]
             [carbon-relaj.files :as files]
+            [carbon-relaj.util :as util]
             [lamina.core :as lamina]
             [aleph.tcp :as aleph]
             [gloss.core :as gloss]))
@@ -18,10 +19,11 @@
 ; hard links.
 (if (< 1 (count (filter true? (clojure.core/map #(= "link" (str (first %)))
                                                 (seq (ns-publics (the-ns 'me.raynes.fs)))))))
-  (do
-    (error "This jre doesn't provide you with the ability to do hard links.  Use java versions >=1.7.")
-    (error "Exiting with a sad face.  :(")
-    (System/exit 1)))
+  (util/exit-error
+   (str "This jre doesn't provide you with the ability to do hard links.  Use java versions >=1.7.\n"
+        "Exiting with a sad face.  :(\n")
+   100)
+
 
 ;; Configuration
 ;; XXX remove this to separate file later.
@@ -63,15 +65,6 @@ done
 ;;     (into {} (filter #(= "false" (second %)) (check-all-conf-dirs directory-vec)))))
 
 
-(defn exit-config-error
-  "exits with a message, maybe an exit code"
-  ([]
-     (exit-config-error "An error was encountered, and the system will now exit.  Sorry it didn't work out." 1))
-  ([message]
-     (exit-config-error  message 1))
-  ([message errorcode]
-     (error message)
-     (System/exit (int errorcode))))
 
 ;; XXX fix the checking of directories, etc.
 ;; (defn check-config [config]
@@ -82,7 +75,7 @@ done
 ;;   ; Check directories
 ;;   (let [fail-directories (check-dirs-exist (config-map :target-list))]
 ;;     (if (> 0 (count(fail-directories)))
-;;       (exit-config-error
+;;       (util/exit-error
 ;;        "These directories failed %s"
 ;;        (for [f foo] (format "%s: %s\n" (first f) (second f)))) 3))
 ;;   ;; XXX TODO More checks here.
@@ -125,22 +118,24 @@ done
 
 
 (defn read-carbon-line [line-mapping]
-  "line-mapping is a map containing the keys :line and :socket.
+  "line-mapping is a map containing the keys :line and :client-info.
    The line is a whitespace-separated string that looks like this:
 
-     metric-name value timestamp\\n
+     metric-name value timestamp\n
 
    This is broken up into a vector of [string float float]
 
    The :socket is provided so that in case of an error, the error can be
    tracked to the remote host and port that provided the bad metric."
+  (defn get-address []
+    ((line-mapping :client-info) :address))
   (if (empty? (line-mapping :line))
                                         ; TODO: detect more bad metric values
-    (warn "Received an empty line from " (.getInetAddress (line-mapping :socket)))
+    (warn "Received an empty line from " (get-address))
     (let [splitup (clojure.string/split (line-mapping :line) #"\s+" 3)]
       (if (not= (count splitup) 3)
         (warn "Received an invalid line \"" (line-mapping :line) "\" from "
-              (.getInetAddress (line-mapping :socket)))
+              (get-address))
         (do
           (async/go (async/>! spool-channel
                               [(splitup 0) (read-string (splitup 1))
@@ -149,32 +144,10 @@ done
 (async/go
  (while true (read-carbon-line (async/<! carbon-channel))))
 
-
-
-
-;; (defn carbon-receiver [config]
-;;   "Listen on a port, and accept carbon line-protocol data.  For each connected socket
-;;    when a line is read, feed the data to an async channel as a vector
-;;    of [message (remote-address remote-port)] so that downstream functions
-;;    can log information about the connection."
-;;   (letfn [(carbon-spooler [in out socket]
-;;             (binding [*in* (BufferedReader. (InputStreamReader. in))
-;;                       *out* (OutputStreamWriter. out)]
-;;               (loop []
-;;                 (let [input (read-line)]
-;;                   (if-not (nil? input)
-;;                     (do
-;;                       (println input "\n")
-;;                       (async/>!! carbon-channel { :line input :socket socket})))
-;;                   (recur)))))]
-;;     (relay-socket/create-server (config :listen-port) carbon-spooler)))
-
-
+; based on the aleph example tcp service at https://github.com/ztellman/aleph/wiki/TCP
 (defn carbon-receiver [ch client-info]
   (lamina/receive-all ch
                #(async/>!! carbon-channel { :line % :client-info client-info})))
-    ; #(enqueue ch (str "You said " %))))
-
 
 
 ;; From server-socket.
