@@ -22,7 +22,7 @@
   (util/exit-error
    (str "This jre doesn't provide you with the ability to do hard links.  Use java versions >=1.7.\n"
         "Exiting with a sad face.  :(\n")
-   100)
+   100))
 
 
 ;; Configuration
@@ -96,7 +96,7 @@ done
 (defn write-metric-to-file [config]
   "Pulls a metric off of the channel spool-channel which is in-scope.
 
-   Each metric is a vector of [metric (value timestamp)]
+   Each metric is a vector of [metric value timestamp]
    It will be written out as a 1-line json document in a file with
    many such lines.  The 1-line document is a defensive measure since
    the server has to accept a lot of possibly strange things on the wire.
@@ -129,17 +129,25 @@ done
    tracked to the remote host and port that provided the bad metric."
   (defn get-address []
     ((line-mapping :client-info) :address))
+  (defn get-line []
+    (clojure.string/trim-newline (line-mapping :line)))
   (if (empty? (line-mapping :line))
                                         ; TODO: detect more bad metric values
     (warn "Received an empty line from " (get-address))
-    (let [splitup (clojure.string/split (line-mapping :line) #"\s+" 3)]
-      (if (not= (count splitup) 3)
-        (warn "Received an invalid line \"" (line-mapping :line) "\" from "
-              (get-address))
-        (do
-          (async/go (async/>! spool-channel
-                              [(splitup 0) (read-string (splitup 1))
-                               (read-string (splitup 2))])))))))
+    (try
+      (let [splitup (try (clojure.string/split (get-line) #"\s+" 3) (catch java.lang.IndexOutOfBoundsException e))
+            metric-name (try (splitup 0) (catch java.lang.IllegalArgumentException e))
+            value (try (Double/parseDouble (splitup 1)) (catch java.lang.IllegalArgumentException e))
+            timestamp (try (Double/parseDouble (splitup 2)) (catch java.lang.IllegalArgumentException e))]
+        (if (or (not= (count splitup) 3)
+                (not (number? value))
+                (not (number? timestamp)))
+          (warn "Received an invalid line \""(get-line)"\" from " (get-address))
+          (do
+            (println (str "[metric-name value timestamp] is " metric-name " " value " " timestamp))
+            (async/go (async/>! spool-channel
+                                [metric-name value timestamp])))))
+      (catch java.lang.IndexOutOfBoundsException e (warn "Received a bad line "(get-line)" from "(get-address))))))
 
 (async/go
  (while true (read-carbon-line (async/<! carbon-channel))))
