@@ -1,5 +1,5 @@
 (ns carbon-relaj.core
-  (:gen-class)
+  (:gen-class :main true)
   (:import (java.net InetAddress ServerSocket Socket SocketException)
            (java.io InputStreamReader OutputStream
                     OutputStreamWriter PrintWriter
@@ -163,9 +163,13 @@ done
   (doto (Thread. ^Runnable f)
     (.start)))
 
-(defn -main []
- ; Run the writer on its own thread.
-  (on-thread #(write-metric-to-file config-map))
-  (println "HERE")
-  (aleph/start-tcp-server carbon-receiver {:port (config-map :listen-port)
-                                     :frame (gloss.core/string :utf-8 :delimiters ["\n"])}))
+(defn -main [& args]
+  (let [cmdline-args (carbon-relaj.cmdline/parse-args args)
+        config-parsed (carbon-relaj/read-config (cmdline-args "--config"))
+        config (into config-parsed cmdline-args)] ; merge command line and file configs
+    ;; Run the writer on its own thread.
+    (on-thread #(write-metric-to-file config-map))
+    ;; Debugging log
+    (println "HERE")
+    (aleph/start-tcp-server carbon-receiver {:port (config-map :listen-port)
+                                             :frame (gloss.core/string :utf-8 :delimiters ["\n"])})))
