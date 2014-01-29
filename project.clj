@@ -10,7 +10,8 @@
                  [com.cemerick/pomegranate "0.2.0"]
                  [aleph "0.3.0"]
                  [clojure-ini "0.0.1"]
-                 [docopt "0.6.1"]]
+                 [docopt "0.6.1"]
+                 [beckon "0.1.1"]]
   ; :main ^:skip-aot carbon-relaj.core
   :main carbon-relaj.core)
 ;   :target-path "target/%s"

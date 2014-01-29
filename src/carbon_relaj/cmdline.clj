@@ -17,7 +17,14 @@ Options:
 
 (def relaj-version "0.0.1" )
 
-(defn  parse-args [args]
+
+(defn parse-args 
+  []
+  "Parse *command-line-args*"
+  (parse-args *command-line-args*)
+
+  [args]
+  "Parse the provided args"
   (let [parsed (-docopt docstring args)]
     (into (doto parsed (.put "--version" relaj-version)))))
 
