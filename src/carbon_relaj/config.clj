@@ -35,7 +35,7 @@
    with the corresponding value from value-list"
 
 (defn update-config 
-  ()) ; TODO: update the config binding
+  (set! *config* (update-config-map)))
   
 
 (reset! (beckon/signal-atom "HUP") #{read-config})
