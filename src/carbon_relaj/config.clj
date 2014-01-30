@@ -1,7 +1,7 @@
 (ns carbon-relaj.config
   (:gen-class)
-  (:use [clojure-ini.core])
-  (:require 'beckon))
+  (:require [beckon]
+            [clojure-ini.core :as ini]))
 
 
 (def default-config-map {
@@ -14,35 +14,37 @@
                  :file-rotation-period-ms 1000})
 
 
-(defn read-config 
-  []
-  (read-config (carbon-relaj.cmdline/parse-args *command-line-args*
+(defn read-config
+  ([]
+     (read-config (carbon-relaj.cmdline/parse-args *command-line-args*)))
 
-  [config-file-path]
-  "Read and parse the config file.
+  ([config-file-path]
+     "Read and parse the config file.
    TODO: check file existence, etc"
-  (read-ini config-file-path :keywordize true :comment-char "#"))
+     (ini/read-ini config-file-path :keywordize true :comment-char "#")))
 
-; XXX I think this should change to being an atom
+; XXX I don't think this needs to be an atom.  If it happens
+; to be closed over in some scope, though, this may not have
+; an affect.  So it probably is better to make this an atom.
 (def *config* (read-config))
 
 (defn update-config-map
   []
   "Reads config from disk and updates it."
-  (read-config 
+
   [key-list value-list]
   "Reads config from disk and overides each key in key-list
    with the corresponding value from value-list"
 
-(defn update-config 
+(defn update-config
   (set! *config* (update-config-map)))
-  
+
 
 (reset! (beckon/signal-atom "HUP") #{read-config})
 
-  
 
-; Configuration should be loaded at the outset.  Configuration should also be 
+
+; Configuration should be loaded at the outset.  Configuration should also be
 ; modifiable at run time - either via a manhole or via a signal, etc.
 
 ; First step in config checking.
@@ -82,4 +84,3 @@
 ;; )
 
 ; End config checking
-
