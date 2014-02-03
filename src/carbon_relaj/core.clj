@@ -10,6 +10,7 @@
   (:require [clojure.core.async :as async]
             [carbon-relaj.files :as files]
             [carbon-relaj.util :as util]
+            [carbon-relaj.config :as cf]
             [lamina.core :as lamina]
             [aleph.tcp :as aleph]
             [gloss.core :as gloss]))
@@ -25,38 +26,18 @@
    100))
 
 
-;; Configuration
-;; XXX remove this to separate file later.
-;; Test setup:
-"
-for f in temp send ; do
-  for host in a b c d  ; do
-    mkdir -p /tmp/foo/$f/host-$host
-  done
-done
-"
-(def config-map {
-                 :listen-port 9090
-                 :channel-queue-size 128
-                 :spool-dir "/tmp/foo"
-                 :temp-dir "/tmp/foo/temp"
-                 :send-dir "/tmp/foo/send"
-                 :target-list ["host-a", "host-b", "host-c", "host-d"]
-                 :file-rotation-period-ms 1000})
-
-
 ; TODO
 ; Write that feed to disk.
 
 ;; Channels
-(def carbon-channel (async/chan (config-map :channel-queue-size))) ; Channel for input of carbon line proto from the network.
-(def spool-channel (async/chan (config-map :channel-queue-size))) ; Channel for metrics to head to disk.
+(def carbon-channel (async/chan (cf/*config* :channel-queue-size))) ; Channel for input of carbon line proto from the network.
+(def spool-channel (async/chan (cf/*config* :channel-queue-size))) ; Channel for metrics to head to disk.
 
 
 ; Test with
 ; (-main) (async/>!! spool-channel ["a.b.c.d" ((files/make-time-map) :float)  ((files/make-time-map) :float)])
-(defn write-metric-to-file [config]
-  "Pulls a metric off of the channel spool-channel which is in-scope.
+(defn write-metric-to-file
+  "Pulls a metric off of the channel spool-channel.
 
    Each metric is a vector of [metric value timestamp]
    It will be written out as a 1-line json document in a file with
@@ -70,13 +51,13 @@ done
    block.  See, that's funny."
                                         ; XXX make timeout configurable
   (loop [[data chosen-channel] (async/alts!! [(async/timeout 250) spool-channel])
-         file-map (files/make-empty-file-map config (files/make-time-map))]
+         file-map (files/make-empty-file-map cf/*config* (files/make-time-map))]
     (if (nil? data)
       (recur (async/alts!! [(async/timeout 250) spool-channel])
-             (files/rotate-file-map config file-map))
-      (let [new-file-map (files/write-json-to-file config file-map data)]
+             (files/rotate-file-map cf/*config* file-map))
+      (let [new-file-map (files/write-json-to-file cf/*config* file-map data)]
         (recur (async/alts!! [(async/timeout 250) spool-channel])
-               (files/rotate-file-map config new-file-map))))))
+               (files/rotate-file-map cf/*config* new-file-map))))))
 
 
 (defn read-carbon-line [line-mapping]
@@ -126,12 +107,11 @@ done
     (.start)))
 
 (defn -main [& args]
+  (cf/read-config)
   (let [cmdline-args (carbon-relaj.cmdline/parse-args args)
-        config-parsed (carbon-relaj/read-config (cmdline-args "--config"))
-        config (into config-parsed cmdline-args)] ; merge command line and file configs
     ;; Run the writer on its own thread.
-    (on-thread #(write-metric-to-file config-map))
+   (on-thread #(write-metric-to-file))
     ;; Debugging log
     (println "HERE")
-    (aleph/start-tcp-server carbon-receiver {:port (config-map :listen-port)
+    (aleph/start-tcp-server carbon-receiver {:port (cf/*config* :listen-port)
                                              :frame (gloss.core/string :utf-8 :delimiters ["\n"])})))

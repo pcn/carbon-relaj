@@ -1,7 +1,8 @@
 (ns carbon-relaj.config
   (:gen-class)
   (:require [beckon]
-            [clojure-ini.core :as ini]))
+            [clojure-ini.core :as ini]
+            [carbon-relaj.cmdline]))
 
 
 (def default-config-map {
@@ -16,7 +17,8 @@
 
 (defn read-config
   ([]
-     (read-config (carbon-relaj.cmdline/parse-args *command-line-args*)))
+     (let [config (read-config (carbon-relaj.cmdline/parse-args *command-line-args*))]
+      (into default-config-map config  ))
 
   ([config-file-path]
      "Read and parse the config file.
@@ -29,12 +31,12 @@
 (def *config* (read-config))
 
 (defn update-config-map
-  []
-  "Reads config from disk and updates it."
+  ([]
+  "Reads config from disk and updates it.")
 
-  [key-list value-list]
+  ([key-list value-list]
   "Reads config from disk and overides each key in key-list
-   with the corresponding value from value-list"
+   with the corresponding value from value-list")
 
 (defn update-config
   (set! *config* (update-config-map)))
