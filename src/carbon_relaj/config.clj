@@ -37,7 +37,9 @@ the defaults.
 ; order to determine whether this needs to be an atom.
 
 ;; TODO: update config from disk
-(def ^:dynamic *config* default-config-map)
+; (def ^:dynamic *config* default-config-map)
+
+
 
 (defn update-config-map
   ([]
@@ -50,13 +52,12 @@ the defaults.
      (let [new-config (read-config)]
        (into new-config (map vector key-list value-list)))))
 
+(def ^:dynamic *config* (update-config-map))
+
 (defn update-config []
   (alter-var-root (var *config*) (update-config-map)))
 
-(alter-var-root  (var *config*) (update-config-map))
-
 (reset! (beckon/signal-atom "HUP") #{update-config})
-
 
 
 ; Configuration should be loaded at the outset.  Configuration should also be
