@@ -8,13 +8,13 @@
 
 
 (def default-config-map {
-                 :lineproto-port 2003
-                 :channel-queue-size 128
-                 :spool-dir "/tmp/foo"
-                 :temp-dir "/tmp/foo/temp"
-                 :send-dir "/tmp/foo/send"
-                 :target-list ["host-a", "host-b", "host-c", "host-d"]
-                 :file-rotation-period-ms 1000})
+                         :lineproto-port 2003
+                         :channel-queue-size 128
+                         :spool-dir "/tmp/foo"
+                         :temp-dir "/tmp/foo/temp"
+                         :send-dir "/tmp/foo/send"
+                         :target-list ["host-a", "host-b", "host-c", "host-d"]
+                         :file-rotation-period-ms 1000})
 
 
 (defn read-config

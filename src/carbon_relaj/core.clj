@@ -51,6 +51,7 @@
    can't be called from a go block because it blocks.  So it's a no-go
    block.  See, that's funny."
   ;; XXX make timeout configurable
+  []
   (loop [[data chosen-channel] (async/alts!! [(async/timeout 250) spool-channel])
          file-map (files/make-empty-file-map cf/*config* (files/make-time-map))]
     (if (nil? data)
@@ -96,10 +97,11 @@
 (async/go
  (while true (read-carbon-line (async/<! carbon-channel))))
 
-                                        ; based on the aleph example tcp service at https://github.com/ztellman/aleph/wiki/TCP
+;; based on the aleph example tcp service at https://github.com/ztellman/aleph/wiki/TCP
 (defn carbon-receiver [ch client-info]
+  (println ch)
   (lamina/receive-all ch
-                      (async/>!! carbon-channel { :line % :client-info client-info})))
+                      #(async/>!! carbon-channel { :line % :client-info client-info})))
 
 
 ;; From server-socket.
@@ -108,11 +110,10 @@
     (.start)))
 
 (defn -main [& args]
-  (cf/read-config)
-  (let [cmdline-args (carbon-relaj.cmdline/parse-args args)
+  (let [cmdline-args (carbon-relaj.cmdline/parse-args args)]
         ;; Run the writer on its own thread.
         (on-thread #(write-metric-to-file))
         ;; Debugging log
         (println "HERE")
-        (aleph/start-tcp-server carbon-receiver {:port (cf/*config* :listen-port)
+        (aleph/start-tcp-server carbon-receiver {:port (cf/*config* :lineproto-port)
                                                  :frame (gloss.core/string :utf-8 :delimiters ["\n"])})))
