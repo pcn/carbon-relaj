@@ -47,12 +47,13 @@
   (doall
    (for [new-dir (config :target-list)]
      (do
-       ; XXX add error checking here.
-       ; XXX and recovery from the inevitable errors.
+       ;; XXX add error checking here.
+       ;; XXX and recovery from the inevitable errors.
        (let [current-name (f :file-name)
              base-name (fs/base-name current-name)
              new-name (str (config :send-dir) "/" new-dir "/" base-name)]
-         (link current-name new-name))))))
+         (link current-name new-name)))))
+  (fs/delete (f :file-name)))
 
 (defn rotate-file-map [config file-map]
   "If a file-map is due for rotation, rotate it and return a new empty file map"
