@@ -25,10 +25,7 @@ Options:
 
   ([args]
      (let [parsed (-docopt docstring args)]
-;       (into {} (doto parsed (.put "--version" relaj-version))))))
        (doto parsed (.put "--version" relaj-version)))))
-
-(def fake-help-cmdline ["foo" "-h" "-c" "/bla/blahblah"])
 
 (defn test-help-args []
   (let [fake-cmdline ["foo" "-h"]]

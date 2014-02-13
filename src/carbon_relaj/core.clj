@@ -16,8 +16,8 @@
             [gloss.core :as gloss]))
 
 
-; First check that we're using a jvm that gives fs the ability to do
-; hard links.
+;; First check that we're using a jvm that gives fs the ability to do
+;; hard links.
 (if (< 1 (count (filter true? (clojure.core/map #(= "link" (str (first %)))
                                                 (seq (ns-publics (the-ns 'me.raynes.fs)))))))
   (util/exit-error
@@ -25,17 +25,18 @@
         "Exiting with a sad face.  :(\n")
    100))
 
+(cf/read-config)
+(println cf/*config*)
 
-; TODO
-; Write that feed to disk.
-
+;; TODO
+;; Write that feed to disk.
 ;; Channels
 (def carbon-channel (async/chan (cf/*config* :channel-queue-size))) ; Channel for input of carbon line proto from the network.
 (def spool-channel (async/chan (cf/*config* :channel-queue-size))) ; Channel for metrics to head to disk.
 
 
-; Test with
-; (-main) (async/>!! spool-channel ["a.b.c.d" ((files/make-time-map) :float)  ((files/make-time-map) :float)])
+;; Test with
+;; (-main) (async/>!! spool-channel ["a.b.c.d" ((files/make-time-map) :float)  ((files/make-time-map) :float)])
 (defn write-metric-to-file
   "Pulls a metric off of the channel spool-channel.
 
@@ -49,7 +50,7 @@
    async channel, and write to disk, rotating files as needed.  This
    can't be called from a go block because it blocks.  So it's a no-go
    block.  See, that's funny."
-                                        ; XXX make timeout configurable
+  ;; XXX make timeout configurable
   (loop [[data chosen-channel] (async/alts!! [(async/timeout 250) spool-channel])
          file-map (files/make-empty-file-map cf/*config* (files/make-time-map))]
     (if (nil? data)
@@ -95,10 +96,10 @@
 (async/go
  (while true (read-carbon-line (async/<! carbon-channel))))
 
-; based on the aleph example tcp service at https://github.com/ztellman/aleph/wiki/TCP
+                                        ; based on the aleph example tcp service at https://github.com/ztellman/aleph/wiki/TCP
 (defn carbon-receiver [ch client-info]
   (lamina/receive-all ch
-               #(async/>!! carbon-channel { :line % :client-info client-info})))
+                      (async/>!! carbon-channel { :line % :client-info client-info})))
 
 
 ;; From server-socket.
@@ -109,9 +110,9 @@
 (defn -main [& args]
   (cf/read-config)
   (let [cmdline-args (carbon-relaj.cmdline/parse-args args)
-    ;; Run the writer on its own thread.
-   (on-thread #(write-metric-to-file))
-    ;; Debugging log
-    (println "HERE")
-    (aleph/start-tcp-server carbon-receiver {:port (cf/*config* :listen-port)
-                                             :frame (gloss.core/string :utf-8 :delimiters ["\n"])})))
+        ;; Run the writer on its own thread.
+        (on-thread #(write-metric-to-file))
+        ;; Debugging log
+        (println "HERE")
+        (aleph/start-tcp-server carbon-receiver {:port (cf/*config* :listen-port)
+                                                 :frame (gloss.core/string :utf-8 :delimiters ["\n"])})))

@@ -2,7 +2,9 @@
   (:gen-class)
   (:require [beckon]
             [clojure-ini.core :as ini]
-            [carbon-relaj.cmdline]))
+            [carbon-relaj.cmdline]
+            [carbon-relaj.files :as files]
+            [carbon-relaj.util :as util]))
 
 
 (def default-config-map {
@@ -16,73 +18,46 @@
 
 
 (defn read-config
+  "Read and parse the config file. When the config-file-path is provided,
+read in the config file if it exists, and merge its contents with
+the defaults.
+"
   ([]
-     (let [config (read-config (carbon-relaj.cmdline/parse-args *command-line-args*))]
-      (into default-config-map config  ))
-
+     (let [config-file (get (carbon-relaj.cmdline/parse-args) "--config") ]
+       (println (format "Config-file is %s" config-file))
+       (read-config config-file)))
   ([config-file-path]
-     "Read and parse the config file.
-   TODO: check file existence, etc"
-     (ini/read-ini config-file-path :keywordize true :comment-char "#")))
+     (if (files/exists? config-file-path)
+       (into default-config-map (ini/read-ini config-file-path :keywordize true :comment-char "#"))
+       (util/exit-error (format "The configuration file %s failed to exist.  Exiting." config-file-path)))))
 
 ; XXX I don't think this needs to be an atom.  If it happens
 ; to be closed over in some scope, though, this may not have
-; an affect.  So it probably is better to make this an atom.
-(def *config* (read-config))
+; any effect.  So it is worth verifying what I will do with this in
+; order to determine whether this needs to be an atom.
+
+;; TODO: update config from disk
+(def ^:dynamic *config* default-config-map)
 
 (defn update-config-map
   ([]
-  "Reads config from disk and updates it.")
+     "Reads config from disk and updates it."
+     (update-config-map  [] []))
 
   ([key-list value-list]
-  "Reads config from disk and overides each key in key-list
-   with the corresponding value from value-list")
+     "Reads config from disk and overrides each key in key-list with the
+      corresponding value from value-list"
+     (let [new-config (read-config)]
+       (into new-config (map vector key-list value-list)))))
 
-(defn update-config
-  (set! *config* (update-config-map)))
+(defn update-config []
+  (alter-var-root (var *config*) (update-config-map)))
 
+(alter-var-root  (var *config*) (update-config-map))
 
-(reset! (beckon/signal-atom "HUP") #{read-config})
+(reset! (beckon/signal-atom "HUP") #{update-config})
 
 
 
 ; Configuration should be loaded at the outset.  Configuration should also be
 ; modifiable at run time - either via a manhole or via a signal, etc.
-
-; First step in config checking.
-;; XXX this was stopped mid-way
-;; (defn check-all-conf-directories [spool-dir temp-dir send-dir target-list]
-;;   "Check the spool dir, temp-dir and send-dir for existence.  Then
-;; check that there is an existing directory for each target"
-;;   (let [dir-vector (concat spool-dir tmp-dir send-dir (for [d [target-list]]
-;;                                                         :let qualified (format "%s/%s" d
-;; (defn check-dirs-exist [directory-vec]
-;;   "If a spool dir doesn't exist, put it into a map of those that
-;; failed to be there for us.  Expects a sequence of directory strings.
-;;
-;; Returns: {directory-name boolean, directory-name boolean}
-;; etc.
-;; "
-;;   (let [bad-dir-list (map #(conj []
-;;                                  (str %)
-;;                                  (str (.isDirectory (clojure.java.io/as-file %)))) directory-vec)]
-;;     (into {} (filter #(= "false" (second %)) (check-all-conf-dirs directory-vec)))))
-
-
-
-;; XXX fix the checking of directories, etc.
-;; (defn check-config [config]
-;;   "Verify that configuration exists to the extent that it makes sense.
-;; Try to keep this lightweight enough that it can be re-run at runtime
-;; so that a cogent error message can be produced if an admin does
-;; something while the system is running"
-;;   ; Check directories
-;;   (let [fail-directories (check-dirs-exist (config-map :target-list))]
-;;     (if (> 0 (count(fail-directories)))
-;;       (util/exit-error
-;;        "These directories failed %s"
-;;        (for [f foo] (format "%s: %s\n" (first f) (second f)))) 3))
-;;   ;; XXX TODO More checks here.
-;; )
-
-; End config checking

@@ -11,6 +11,9 @@
    from the system call link(2).  What.  The.  Fuck."
   (fs/link target src))
 
+(defn exists? [target]
+  (fs/exists? target))
+
 (defn make-time-map
   ([]
      (make-time-map (System/currentTimeMillis)))
