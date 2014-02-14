@@ -44,23 +44,24 @@
 (defn relink-file-on-disk [config f]
   "links the file to a new file or set of filenames"
   (debug "I think I should be acting on this: " config)
-  (doall
-   (for [new-dir (config :target-list)]
-     (do
-       ;; XXX add error checking here.
-       ;; XXX and recovery from the inevitable errors.
-       (let [current-name (f :file-name)
-             base-name (fs/base-name current-name)
-             new-name (str (config :send-dir) "/" new-dir "/" base-name)]
-         (link current-name new-name)))))
-  (fs/delete (f :file-name)))
+  (let [current-name (f :file-name)]
+    (doall
+     (for [new-dir (config :target-list)]
+       (do
+         ;; XXX add error checking here.
+         ;; XXX and recovery from the inevitable errors.
+         (let  [base-name (fs/base-name current-name)
+                new-name (str (config :send-dir) "/" new-dir "/" base-name)]
+           (link current-name new-name)))))))
 
 (defn rotate-file-map [config file-map]
-  "If a file-map is due for rotation, rotate it and return a new empty file map"
+  "If a file-map is due for rotation, rotate it, delete the
+now-obsoleted file and return a new empty file map"
   (if (and (not= (file-map :file-name) "") (file-needs-rotation? config file-map))
     (do
-      (relink-file-on-disk config file-map) ; XXX this isn't happening.
+      (relink-file-on-disk config file-map)
       (.close (file-map :writable-file))
+      (fs/delete (file-map :file-name))
       (make-empty-file-map config (make-time-map)))
     file-map))
 
