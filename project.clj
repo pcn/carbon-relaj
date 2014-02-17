@@ -1,4 +1,3 @@
-
 (defproject carbon-relaj "0.1.0-SNAPSHOT"
   :description "An asychronous carbon-relay that accepts messages from the network and spools to disk"
   :dependencies [[org.clojure/clojure "1.5.1"]
@@ -12,7 +11,10 @@
                  [aleph "0.3.0"]
                  [clojure-ini "0.0.1"]
                  [docopt "0.6.1"]
-                 [beckon "0.1.1"]]
+                 [beckon "0.1.1"]
+                 [interval-metrics "1.0.0"]
+                 [com.taoensso/timbre "3.0.1"] ; Use this to do profiling, maybe to send data to interval-metrics?
+                 ]
   ; :main ^:skip-aot carbon-relaj.core
   :main carbon-relaj.core)
 ;   :target-path "target/%s"
