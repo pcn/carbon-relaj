@@ -5,26 +5,38 @@
                     OutputStreamWriter PrintWriter
                     InputStreamReader BufferedReader)
            (clojure.lang LineNumberingPushbackReader))
-  (:use [clojure.main :only (repl)]
-        [clojure.tools.logging :only (debug info warn error)])
+  (:use [clojure.main :only (repl)])
   (:require [clojure.core.async :as async]
             [carbon-relaj.files :as files]
             [carbon-relaj.util :as util]
             [carbon-relaj.config :as cf]
+            [carbon-relaj.sanitize :as sanitize]
             [lamina.core :as lamina]
             [aleph.tcp :as aleph]
-            [gloss.core :as gloss]))
+            [gloss.core :as gloss]
+            [taoensso.timbre :as timbre]))
 
+
+
+;; Initialization and sanity checks
 
 ;; First check that we're using a jvm that gives fs the ability to do
 ;; hard links.
-(if (< 1 (count (filter true? (clojure.core/map #(= "link" (str (first %)))
-                                                (seq (ns-publics (the-ns 'me.raynes.fs)))))))
-  (util/exit-error
-   (str "This jre doesn't provide you with the ability to do hard links.  Use java versions >=1.7.\n"
-        "Exiting with a sad face.  :(\n")
-   100))
+(defn check-jvm-version []
+  (if (< 1 (count (filter true? (clojure.core/map #(= "link" (str (first %)))
+                                                  (seq (ns-publics (the-ns 'me.raynes.fs)))))))
+    (util/exit-error
+     (str "This jre doesn't provide you with the ability to do hard links.  Use java versions >=1.7.\n"
+          "Exiting with a sad face.  :(\n")
+     100)))
 
+(check-jvm-version)
+
+;; Provides useful Timbre aliases in this ns - maybe move to conf since
+;; it may e.g. get log-level changed at runtime?
+(timbre/refer-timbre)
+
+;; Read configuration and command line
 (cf/read-config)
 
 ;; Channels
@@ -74,7 +86,7 @@
   (defn get-line []
     (clojure.string/trim-newline (line-mapping :line)))
   (if (empty? (line-mapping :line))
-                                        ; TODO: detect more bad metric values
+    ;; TODO: detect more bad metric values
     (warn "Received an empty line from " (get-address))
     (try
       (let [splitup (try (clojure.string/split (get-line) #"\s+" 3) (catch java.lang.IndexOutOfBoundsException e))

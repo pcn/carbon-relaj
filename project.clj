@@ -14,7 +14,7 @@
                  [beckon "0.1.1"]
                  [interval-metrics "1.0.0"]
                  [com.taoensso/timbre "3.0.1"] ; Use this to do profiling, maybe to send data to interval-metrics?
-                 ]
+                 [bouncer "0.3.1-beta1"]]
   ; :main ^:skip-aot carbon-relaj.core
   :main carbon-relaj.core)
 ;   :target-path "target/%s"
