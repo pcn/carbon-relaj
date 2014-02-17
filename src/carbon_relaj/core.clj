@@ -26,10 +26,7 @@
    100))
 
 (cf/read-config)
-(println cf/*config*)
 
-;; TODO
-;; Write that feed to disk.
 ;; Channels
 (def carbon-channel (async/chan (cf/*config* :channel-queue-size))) ; Channel for input of carbon line proto from the network.
 (def spool-channel (async/chan (cf/*config* :channel-queue-size))) ; Channel for metrics to head to disk.
