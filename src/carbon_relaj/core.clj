@@ -1,10 +1,5 @@
 (ns carbon-relaj.core
   (:gen-class :main true)
-  (:import (java.net InetAddress ServerSocket Socket SocketException)
-           (java.io InputStreamReader OutputStream
-                    OutputStreamWriter PrintWriter
-                    InputStreamReader BufferedReader)
-           (clojure.lang LineNumberingPushbackReader))
   (:use [clojure.main :only (repl)])
   (:require [clojure.core.async :as async]
             [carbon-relaj.files :as files]
