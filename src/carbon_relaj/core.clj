@@ -14,7 +14,8 @@
             [lamina.core :as lamina]
             [aleph.tcp :as aleph]
             [gloss.core :as gloss]
-            [taoensso.timbre :as timbre]))
+            [taoensso.timbre :as timbre]
+            [clojure.string :as s]))
 
 
 
@@ -84,24 +85,17 @@
   (defn get-address []
     ((line-mapping :client-info) :address))
   (defn get-line []
-    (clojure.string/trim-newline (line-mapping :line)))
-  (if (empty? (line-mapping :line))
-    ;; TODO: detect more bad metric values
-    (warn "Received an empty line from " (get-address))
-    (try
-      (let [splitup (try (clojure.string/split (get-line) #"\s+" 3) (catch java.lang.IndexOutOfBoundsException e))
-            metric-name (try (splitup 0) (catch java.lang.IllegalArgumentException e))
-            value (try (Double/parseDouble (splitup 1)) (catch java.lang.IllegalArgumentException e))
-            timestamp (try (Double/parseDouble (splitup 2)) (catch java.lang.IllegalArgumentException e))]
-        (if (or (not= (count splitup) 3)
-                (not (number? value))
-                (not (number? timestamp)))
-          (warn "Received an invalid line \""(get-line)"\" from " (get-address))
-          (do
-            (println (str "[metric-name value timestamp] is " metric-name " " value " " timestamp))
-            (async/go (async/>! spool-channel
-                                [metric-name value timestamp])))))
-      (catch java.lang.IndexOutOfBoundsException e (warn "Received a bad line "(get-line)" from "(get-address))))))
+    (s/trim (line-mapping :line)))
+
+  (if-not (sanitize/validate-line (get-line))
+    (warn "Received an bogus line: " (get-line) " from " (get-address))
+    (let [metric-list (s/split (get-line) #"\s+")
+          metric-name (get metric-list 0)
+          value (get metric-list 1)
+          timestamp (get metric-list 2)]
+      (println (str "[metric-name value timestamp] is " metric-name " " value " " timestamp))
+      (async/go (async/>! spool-channel
+                          [metric-name value timestamp])))))
 
 (async/go
  (while true (read-carbon-line (async/<! carbon-channel))))
