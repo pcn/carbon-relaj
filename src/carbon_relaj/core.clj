@@ -60,15 +60,14 @@
    async channel, and write to disk, rotating files as needed.  This
    can't be called from a go block because it blocks.  So it's a no-go
    block.  See, that's funny."
-  ;; XXX make timeout configurable
   []
-  (loop [[data chosen-channel] (async/alts!! [(async/timeout 250) spool-channel])
+  (loop [[data chosen-channel] (async/alts!! [(async/timeout (cf/*config* :channel-timeout)) spool-channel])
          file-map (files/make-empty-file-map cf/*config* (files/make-time-map))]
     (if (nil? data)
-      (recur (async/alts!! [(async/timeout 250) spool-channel])
+      (recur (async/alts!! [(async/timeout (cf/*config* :channel-timeout)) spool-channel])
              (files/rotate-file-map cf/*config* file-map))
       (let [new-file-map (files/write-json-to-file cf/*config* file-map data)]
-        (recur (async/alts!! [(async/timeout 250) spool-channel])
+        (recur (async/alts!! [(async/timeout (cf/*config* :channel-timeout)) spool-channel])
                (files/rotate-file-map cf/*config* new-file-map))))))
 
 
