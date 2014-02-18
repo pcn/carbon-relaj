@@ -10,6 +10,7 @@
 (def default-config-map {
                          :lineproto-port 2003
                          :channel-queue-size 128
+                         :channel-timeout 250
                          :spool-dir "/tmp/foo"
                          :temp-dir "/tmp/foo/temp"
                          :send-dir "/tmp/foo/send"
