@@ -7,18 +7,23 @@
             [clojure.data.json :as json]))
 
 (defn link [src target]
-  "The java createLink does things in the opposite order
-   from the system call link(2).  What.  The.  Fuck."
+  "The java createLink does things in the opposite order from the unix
+system call link(2).  What.  The.  Fuck.  The function name is halfway
+between the unix system call link(), but its argument order follows the
+windows CreateHardLink call.  Java devs, please get a designated driver
+before you implement another API"
   (fs/link target src))
 
 (defn exists? [target]
   (fs/exists? target))
 
 (defn make-time-map
+  "If a time (in milliseconds since the epoch) isn't provided, use the
+current time.  If provided, it's a long int as returned by
+System/currentTimeMillis"
   ([]
      (make-time-map (System/currentTimeMillis)))
   ([the-time]
-     "the-time is a long int as returned by System/currentTimeMillis"
   (let [t the-time, seconds (quot t 1000), ms (mod t 1000), float-val (/ (float t) 1000)]
     {:long t, :seconds seconds, :ms ms, :float float-val })))
 
