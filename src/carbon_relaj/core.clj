@@ -37,7 +37,7 @@
    It will be written out as a 1-line json document in a file with
    many such lines.  The 1-line document is a defensive measure since
    the server has to accept a lot of possibly strange things on the wire.
-   Using json will encode it in a readable manner (in most cases).
+   Using json will encode it in a way that's safely readable.
 
    This needs to be run on an independent thread that will read from an
    async channel, and write to disk, rotating files as needed.  This
@@ -65,17 +65,19 @@
    The :socket is provided so that in case of an error, the error can be
    tracked to the remote host and port that provided the bad metric."
   (defn get-address []
+    "Extract the address of the client from line-mapping"
     ((line-mapping :client-info) :address))
   (defn get-line []
+    "Extract the text of the line from the line-mapping"
     (s/trim (line-mapping :line)))
 
   (if-not (sanitize/validate-line (get-line))
-    (warn "Received an bogus line: " (get-line) " from " (get-address))
+    (warn "Received a bogus line: " (get-line) " from " (get-address))
     (let [metric-list (s/split (get-line) #"\s+")
           metric-name (get metric-list 0)
           value (get metric-list 1)
           timestamp (get metric-list 2)]
-      (println (str "[metric-name value timestamp] is " metric-name " " value " " timestamp))
+      ;; (println (str "[metric-name value timestamp] is " metric-name " " value " " timestamp))
       (async/go (async/>! spool-channel
                           [metric-name value timestamp])))))
 
@@ -84,7 +86,7 @@
 
 ;; based on the aleph example tcp service at https://github.com/ztellman/aleph/wiki/TCP
 (defn carbon-receiver [ch client-info]
-  (println ch)
+  ;; (println ch)
   (lamina/receive-all ch
                       #(async/>!! carbon-channel { :line % :client-info client-info})))
 
@@ -99,6 +101,6 @@
         ;; Run the writer on its own thread.
         (on-thread #(write-metric-to-file))
         ;; Debugging log
-        (println "HERE")
+        (println "HERE") ;; XXX convert this into an INFO message
         (aleph/start-tcp-server carbon-receiver {:port (cf/*config* :lineproto-port)
                                                  :frame (gloss.core/string :utf-8 :delimiters ["\n"])})))
