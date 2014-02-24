@@ -9,7 +9,7 @@
                  [me.raynes/fs "1.4.5"]
                  [com.cemerick/pomegranate "0.2.0"]
                  [aleph "0.3.0"]
-                 [clojure-ini "0.0.1"]
+                 [com.brainbot/iniconfig "0.2.0"]
                  [docopt "0.6.1"]
                  [beckon "0.1.1"]
                  [interval-metrics "1.0.0"]
