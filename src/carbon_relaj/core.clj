@@ -21,11 +21,11 @@
 (timbre/refer-timbre)
 
 ;; Read configuration and command line, make cf/*config* available
-(cf/read-config)
+(cf/update-config)
 
 ;; Channels
-(def carbon-channel (async/chan (cf/*config* :channel-queue-size))) ; Channel for input of carbon line proto from the network.
-(def spool-channel (async/chan (cf/*config* :channel-queue-size))) ; Channel for metrics to head to disk.
+(def carbon-channel (async/chan (cf/*config* "channel-queue-size"))) ; Channel for input of carbon line proto from the network.
+(def spool-channel (async/chan (cf/*config* "channel-queue-size"))) ; Channel for metrics to head to disk.
 
 
 ;; Test with
@@ -44,13 +44,13 @@
    can't be called from a go block because it blocks.  So it's a no-go
    block.  See, that's funny."
   []
-  (loop [[data chosen-channel] (async/alts!! [(async/timeout (cf/*config* :channel-timeout)) spool-channel])
+  (loop [[data chosen-channel] (async/alts!! [(async/timeout (cf/*config* "channel-timeout")) spool-channel])
          file-map (files/make-empty-file-map cf/*config* (files/make-time-map))]
     (if (nil? data)
-      (recur (async/alts!! [(async/timeout (cf/*config* :channel-timeout)) spool-channel])
+      (recur (async/alts!! [(async/timeout (cf/*config* "channel-timeout")) spool-channel])
              (files/rotate-file-map cf/*config* file-map))
       (let [new-file-map (files/write-json-to-file cf/*config* file-map data)]
-        (recur (async/alts!! [(async/timeout (cf/*config* :channel-timeout)) spool-channel])
+        (recur (async/alts!! [(async/timeout (cf/*config* "channel-timeout")) spool-channel])
                (files/rotate-file-map cf/*config* new-file-map))))))
 
 
@@ -102,5 +102,5 @@
         (on-thread #(write-metric-to-file))
         ;; Debugging log
         (println "HERE") ;; XXX convert this into an INFO message
-        (aleph/start-tcp-server carbon-receiver {:port (cf/*config* :lineproto-port)
+        (aleph/start-tcp-server carbon-receiver {:port (cf/*config* "lineproto-port")
                                                  :frame (gloss.core/string :utf-8 :delimiters ["\n"])})))
