@@ -1,16 +1,17 @@
 (ns carbon-relaj.core
   (:gen-class :main true)
   (:use [clojure.main :only (repl)])
-  (:require [clojure.core.async :as async]
-            [carbon-relaj.files :as files]
-            [carbon-relaj.util :as util]
-            [carbon-relaj.config :as cf]
+  (:require [clojure.core.async    :as async]
+            [carbon-relaj.files    :as files]
+            [carbon-relaj.util     :as util]
+            [carbon-relaj.config   :as cf]
             [carbon-relaj.sanitize :as sanitize]
-            [lamina.core :as lamina]
-            [aleph.tcp :as aleph]
-            [gloss.core :as gloss]
-            [taoensso.timbre :as timbre]
-            [clojure.string :as s]))
+            [lamina.core           :as lamina]
+            [aleph.tcp             :as aleph]
+            [gloss.core            :as gloss]
+            [taoensso.timbre       :as timbre]
+            [clojure.string        :as s]
+            [clojure.data.json     :as json]))
 
 
 ;; Initialization and sanity checks
@@ -25,13 +26,13 @@
 
 ;; Channels
 (def carbon-channel (async/chan (cf/*config* "channel-queue-size"))) ; Channel for input of carbon line proto from the network.
-(def spool-channel (async/chan (cf/*config* "channel-queue-size"))) ; Channel for metrics to head to disk.
+(def json-spool-channel (async/chan (cf/*config* "channel-queue-size"))) ; Channel for metrics to head to disk.
 
 
 ;; Test with
-;; (-main) (async/>!! spool-channel ["a.b.c.d" ((files/make-time-map) :float)  ((files/make-time-map) :float)])
+;; (-main) (async/>!! json-spool-channel ["a.b.c.d" ((files/make-time-map) :float)  ((files/make-time-map) :float)])
 (defn write-metric-to-file
-  "Pulls a metric off of the channel spool-channel.
+  "Pulls a metric off of the channel json-spool-channel.
 
    Each metric is a vector of [metric value timestamp]
    It will be written out as a 1-line json document in a file with
@@ -44,14 +45,18 @@
    can't be called from a go block because it blocks.  So it's a no-go
    block.  See, that's funny."
   []
-  (loop [[data chosen-channel] (async/alts!! [(async/timeout (cf/*config* "channel-timeout")) spool-channel])
+  ;; XXX binding the channel-timeout here may mean that it can't be re-configured.
+  (defn timeout_ [conf]
+    (conf "channel-timeout"))
+
+  (loop [[json-data chosen-channel] (async/alts!! [(async/timeout (timeout_ cf/*config*)) json-spool-channel])
          file-map (files/make-empty-file-map cf/*config* (files/make-time-map))]
-    (if (nil? data)
-      (recur (async/alts!! [(async/timeout (cf/*config* "channel-timeout")) spool-channel])
-             (files/rotate-file-map cf/*config* file-map))
-      (let [new-file-map (files/write-json-to-file cf/*config* file-map data)]
-        (recur (async/alts!! [(async/timeout (cf/*config* "channel-timeout")) spool-channel])
-               (files/rotate-file-map cf/*config* new-file-map))))))
+    (if (nil? json-data)
+      (recur (async/alts!! [(async/timeout (timeout_ cf/*config*)) json-spool-channel])
+               (files/rotate-file-map file-map))
+        (let [new-file-map (files/write-json-to-file cf/*config* file-map json-data)]
+          (recur (async/alts!! [(async/timeout (timeout_ cf/*config*)) json-spool-channel])
+                 (files/rotate-file-map new-file-map))))))
 
 
 (defn read-carbon-line [line-mapping]
@@ -60,7 +65,9 @@
 
      metric-name value timestamp\n
 
-   This is broken up into a vector of [string float float]
+   This is broken up into a vector of [string float float] then
+   returned as a newline-terminated string with a one-metric json document, e.g.
+   \"[foo.metric.name 12345 1393226609]\\n\"
 
    The :socket is provided so that in case of an error, the error can be
    tracked to the remote host and port that provided the bad metric."
@@ -76,13 +83,15 @@
     (let [metric-list (s/split (get-line) #"\s+")
           metric-name (get metric-list 0)
           value (get metric-list 1)
-          timestamp (get metric-list 2)]
+          timestamp (get metric-list 2)
+          json-value (json/write-str [metric-name value timestamp])]
       ;; (println (str "[metric-name value timestamp] is " metric-name " " value " " timestamp))
-      (async/go (async/>! spool-channel
-                          [metric-name value timestamp])))))
+      ;;      (async/go (async/>! spool-channel
+      ;;                    [metric-name value timestamp] ))
+      (async/go (async/>!! json-spool-channel (str json-value "\n"))))))
 
 (async/go
- (while true (read-carbon-line (async/<! carbon-channel))))
+ (while true (read-carbon-line (async/<!! carbon-channel))))
 
 ;; based on the aleph example tcp service at https://github.com/ztellman/aleph/wiki/TCP
 (defn carbon-receiver [ch client-info]

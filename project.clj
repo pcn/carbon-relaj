@@ -15,7 +15,16 @@
                  [interval-metrics "1.0.0"]
                  [com.taoensso/timbre "3.0.1"] ; Use this to do profiling, maybe to send data to interval-metrics?
                  [bouncer "0.3.1-beta1"]]
-  ; :main ^:skip-aot carbon-relaj.core
+  :jvm-opts ["-Xmx1024m"
+             "-server"
+             "-XX:+UseConcMarkSweepGC"
+             "-XX:NewSize=768m"
+             "-XX:MaxNewSize=768m"
+             "-verbose:gc"
+             "-XX:+PrintGCDetails"
+             ]
+
+  ;; :main ^:skip-aot carbon-relaj.core
   :main carbon-relaj.core)
 ;   :target-path "target/%s"
 ;   :profiles {:uberjar {:aot :all}})

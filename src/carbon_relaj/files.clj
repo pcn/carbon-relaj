@@ -2,9 +2,9 @@
   (:gen-class)
   (:use [clojure.main :only (repl)]
         [clojure.tools.logging :only (debug info warn error)])
-  (:require [clojure.core.async :as async]
-            [me.raynes.fs :as fs]
-            [clojure.data.json :as json]))
+  (:require [clojure.core.async  :as async]
+            [me.raynes.fs        :as fs]
+            [carbon-relaj.config :as cf]))
 
 (defn link [src target]
   "The java createLink does things in the opposite order from the unix
@@ -59,15 +59,15 @@ System/currentTimeMillis"
                 new-name (str (config "send-dir") "/" new-dir "/" base-name)]
            (link current-name new-name)))))))
 
-(defn rotate-file-map [config file-map]
+(defn rotate-file-map [file-map]
   "If a file-map is due for rotation, rotate it, delete the
 now-obsoleted file and return a new empty file map"
-  (if (and (not= (file-map :file-name) "") (file-needs-rotation? config file-map))
+  (if (and (not= (file-map :file-name) "") (file-needs-rotation? cf/*config* file-map))
     (do
-      (relink-file-on-disk config file-map)
+      (relink-file-on-disk cf/*config* file-map)
       (.close (file-map :writable-file))
       (fs/delete (file-map :file-name))
-      (make-empty-file-map config (make-time-map)))
+      (make-empty-file-map cf/*config* (make-time-map)))
     file-map))
 
 (defn open-file-for-writing [path]
@@ -88,8 +88,10 @@ now-obsoleted file and return a new empty file map"
     file-map))
 
 (defn write-json-to-file [config prior-file-map data]
-  "This will write data to a file.  The file name contains the thread-id
-   to allow for multiple writer threads in the future."
+  "This will write data to a file.  The data must be a self-contained
+   json document that resembles a carbon metric.  E.g. [name metric
+   timestamp].  The file name contains the thread-id to allow for
+   multiple writer threads in the future."
   (let [this-file-map (update-file-map config prior-file-map)]
-    (.write (this-file-map :writable-file) (str (json/write-str data) "\n"))
+    (.write (this-file-map :writable-file) data)
     this-file-map))

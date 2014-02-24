@@ -3,8 +3,8 @@
   (:require [beckon]
             [com.brainbot.iniconfig :as ini]
             [carbon-relaj.cmdline]
-            [carbon-relaj.files :as files]
-            [carbon-relaj.util :as util]))
+            [me.raynes.fs           :as fs]
+            [carbon-relaj.util      :as util]))
 
 
 ;; The default would be expressed in a config file as
@@ -66,7 +66,7 @@ the defaults.
      (let [config-file (get (carbon-relaj.cmdline/parse-args) "--config") ]
        (read-config config-file)))
   ([config-file-path]
-     (if (files/exists? config-file-path)
+     (if (fs/exists? config-file-path)
        (do
          ;; Wow, if the vector of strings to update from contains
          ;; an error, the actual stack trace that comes back is extremely
