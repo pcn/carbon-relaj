@@ -1,7 +1,7 @@
 (ns carbon-relaj.config
   (:gen-class)
   (:require [beckon]
-            [clojure-ini.core :as ini]
+            [com.brainbot.iniconfig :as ini]
             [carbon-relaj.cmdline]
             [carbon-relaj.files :as files]
             [carbon-relaj.util :as util]))
