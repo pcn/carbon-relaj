@@ -82,25 +82,28 @@ the defaults.
 ; order to determine whether this needs to be an atom.
 
 ;; TODO: update config from disk
-; (def ^:dynamic *config* default-config-map)
-
+(def ^:dynamic *config* default-config-map)
 
 
 (defn update-config-map
+  "[]
+Reads config from disk and updates it.
+
+[key-list value-list]
+Reads config from disk and overrides each key in key-list with the
+corresponding value from value-list"
   ([]
-     "Reads config from disk and updates it."
      (update-config-map  [] []))
 
   ([key-list value-list]
-     "Reads config from disk and overrides each key in key-list with the
-      corresponding value from value-list"
      (let [new-config (read-config)]
        (into new-config (map vector key-list value-list)))))
 
 (def ^:dynamic *config* (update-config-map))
 
 (defn update-config []
-  (alter-var-root (var *config*) (update-config-map)))
+  (.bindRoot #'*config* (update-config-map)))
+
 
 (reset! (beckon/signal-atom "HUP") #{update-config})
 
