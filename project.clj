@@ -8,7 +8,7 @@
                  [clj-time "0.6.0"]
                  [me.raynes/fs "1.4.5"]
                  [com.cemerick/pomegranate "0.2.0"]
-                 [aleph "0.3.0"]
+                 [aleph "0.3.2"]
                  [com.brainbot/iniconfig "0.2.0"]
                  [docopt "0.6.1"]
                  [beckon "0.1.1"]
@@ -18,10 +18,10 @@
   :jvm-opts ["-Xmx1024m"
              "-server"
              "-XX:+UseConcMarkSweepGC"
-             "-XX:NewSize=768m"
-             "-XX:MaxNewSize=768m"
-             "-verbose:gc"
-             "-XX:+PrintGCDetails"
+             "-XX:NewSize=900m"
+             "-XX:MaxNewSize=900m"
+;;             "-verbose:gc"
+;;             "-XX:+PrintGCDetails"
              ]
 
   ;; :main ^:skip-aot carbon-relaj.core

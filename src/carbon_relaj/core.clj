@@ -53,10 +53,12 @@
          file-map (files/make-empty-file-map cf/*config* (files/make-time-map))]
     (if (nil? json-data)
       (recur (async/alts!! [(async/timeout (timeout_ cf/*config*)) json-spool-channel])
-               (files/rotate-file-map file-map))
-        (let [new-file-map (files/write-json-to-file cf/*config* file-map json-data)]
-          (recur (async/alts!! [(async/timeout (timeout_ cf/*config*)) json-spool-channel])
-                 (files/rotate-file-map new-file-map))))))
+             (files/rotate-file-map file-map))
+      (let [new-file-map (files/write-json-to-file cf/*config* file-map json-data)]
+        ;; (println "json-spool-channel gave me: " json-data)
+
+        (recur (async/alts!! [(async/timeout (timeout_ cf/*config*)) json-spool-channel])
+               (files/rotate-file-map new-file-map))))))
 
 
 (defn read-carbon-line [line-mapping]
@@ -88,10 +90,12 @@
       ;; (println (str "[metric-name value timestamp] is " metric-name " " value " " timestamp))
       ;;      (async/go (async/>! spool-channel
       ;;                    [metric-name value timestamp] ))
-      (async/go (async/>!! json-spool-channel (str json-value "\n"))))))
+      ;; (println "read json-value: " json-value)
+      ;; (async/go (async/>! json-spool-channel (str json-value "\n")))
+      (async/>!! json-spool-channel (str json-value "\n")))))
 
 (async/go
- (while true (read-carbon-line (async/<!! carbon-channel))))
+ (while true (read-carbon-line (async/<! carbon-channel))))
 
 ;; based on the aleph example tcp service at https://github.com/ztellman/aleph/wiki/TCP
 (defn carbon-receiver [ch client-info]

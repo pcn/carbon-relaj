@@ -47,3 +47,6 @@
             {:text [validate-line-has-content
                     validate-line-is-the-right-size
                     validate-line-has-a-string-and-numbers]}))
+
+;; (defn validate-line [text-of-the-line]
+;;   true)
