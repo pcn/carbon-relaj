@@ -12,10 +12,12 @@
                  [com.brainbot/iniconfig "0.2.0"]
                  [docopt "0.6.1"]
                  [beckon "0.1.1"]
-                 [interval-metrics "1.0.0"]
-                 [com.taoensso/timbre "3.0.1"] ; Use this to do profiling, maybe to send data to interval-metrics?
+                 [interval-metrics "1.0.0"] ; Use this for profiling
+                 [com.taoensso/timbre "3.0.1"] ; For logging
                  [bouncer "0.3.1-beta1"]]
-  :jvm-opts ["-Xmx1024m"
+  :jvm-opts
+;;   ^:replace
+  ["-Xmx1024m"
              "-server"
              "-XX:+UseConcMarkSweepGC"
              "-XX:NewSize=900m"

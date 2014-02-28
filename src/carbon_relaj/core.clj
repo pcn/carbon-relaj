@@ -1,17 +1,19 @@
 (ns carbon-relaj.core
   (:gen-class :main true)
   (:use [clojure.main :only (repl)])
-  (:require [clojure.core.async    :as async]
-            [carbon-relaj.files    :as files]
-            [carbon-relaj.util     :as util]
-            [carbon-relaj.config   :as cf]
-            [carbon-relaj.sanitize :as sanitize]
-            [lamina.core           :as lamina]
-            [aleph.tcp             :as aleph]
-            [gloss.core            :as gloss]
-            [taoensso.timbre       :as timbre]
-            [clojure.string        :as s]
-            [clojure.data.json     :as json]))
+  (:require [clojure.core.async       :as async]
+            [carbon-relaj.files       :as files]
+            [carbon-relaj.util        :as util]
+            [carbon-relaj.config      :as cf]
+            [carbon-relaj.sanitize    :as sanitize]
+            [lamina.core              :as lamina]
+            [aleph.tcp                :as aleph]
+            [gloss.core               :as gloss]
+            [taoensso.timbre          :as timbre]
+            [clojure.string           :as s]
+            [clojure.data.json        :as json]
+            [interval-metrics.core    :as metrics :refer [snapshot! rate+latency]]
+            [interval-metrics.measure :as measure :refer [measure-latency periodically]]))
 
 
 ;; Initialization and sanity checks
@@ -19,6 +21,7 @@
 
 ;; Provides useful Timbre aliases in this ns - maybe move to conf since
 ;; it may e.g. get log-level changed at runtime?
+;; Prefering interval-metrics for now.
 (timbre/refer-timbre)
 
 ;; Read configuration and command line, make cf/*config* available
@@ -28,7 +31,7 @@
 (def carbon-channel (async/chan (cf/*config* "channel-queue-size"))) ; Channel for input of carbon line proto from the network.
 (def json-spool-channel (async/chan (cf/*config* "channel-queue-size"))) ; Channel for metrics to head to disk.
 
-
+(def write-metric-to-file-latencies (rate+latency))
 ;; Test with
 ;; (-main) (async/>!! json-spool-channel ["a.b.c.d" ((files/make-time-map) :float)  ((files/make-time-map) :float)])
 (defn write-metric-to-file
@@ -54,12 +57,12 @@
     (if (nil? json-data)
       (recur (async/alts!! [(async/timeout (timeout_ cf/*config*)) json-spool-channel])
              (files/rotate-file-map file-map))
-      (let [new-file-map (files/write-json-to-file cf/*config* file-map json-data)]
+      (let [new-file-map (measure-latency write-metric-to-file-latencies
+                                           (files/write-json-to-file cf/*config* file-map json-data))]
         ;; (println "json-spool-channel gave me: " json-data)
 
         (recur (async/alts!! [(async/timeout (timeout_ cf/*config*)) json-spool-channel])
                (files/rotate-file-map new-file-map))))))
-
 
 (defn read-carbon-line [line-mapping]
   "line-mapping is a map containing the keys :line and :client-info.
@@ -94,8 +97,10 @@
       ;; (async/go (async/>! json-spool-channel (str json-value "\n")))
       (async/>!! json-spool-channel (str json-value "\n")))))
 
+(def read-carbon-line-latencies (rate+latency))
 (async/go
- (while true (read-carbon-line (async/<! carbon-channel))))
+  (measure-latency read-carbon-line-latencies
+    (while true (read-carbon-line (async/<! carbon-channel)))))
 
 ;; based on the aleph example tcp service at https://github.com/ztellman/aleph/wiki/TCP
 (defn carbon-receiver [ch client-info]
@@ -104,16 +109,25 @@
                       #(async/>!! carbon-channel { :line % :client-info client-info})))
 
 
+(defn perf-poller []
+  (println "YO!")
+  (periodically 5
+                (clojure.pprint/pprint [(snapshot! write-metric-to-file-latencies)
+                                        (snapshot! read-carbon-line-latencies)])))
+
+
 ;; From server-socket.
 (defn on-thread [f]
   (doto (Thread. ^Runnable f)
     (.start)))
 
+
 (defn -main [& args]
   (let [cmdline-args (carbon-relaj.cmdline/parse-args args)]
-        ;; Run the writer on its own thread.
-        (on-thread #(write-metric-to-file))
-        ;; Debugging log
-        (println "HERE") ;; XXX convert this into an INFO message
-        (aleph/start-tcp-server carbon-receiver {:port (cf/*config* "lineproto-port")
-                                                 :frame (gloss.core/string :utf-8 :delimiters ["\n"])})))
+    ;; Run the writer on its own thread.
+    (on-thread #(write-metric-to-file))
+    (on-thread #(perf-poller))
+    ;; Debugging log
+    (info "Next step: receive metrics")
+    (aleph/start-tcp-server carbon-receiver {:port (cf/*config* "lineproto-port")
+                                             :frame (gloss.core/string :utf-8 :delimiters ["\n"])})))

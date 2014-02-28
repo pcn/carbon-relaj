@@ -1,11 +1,11 @@
 (ns carbon-relaj.sanitize
-  (:require [taoensso.timbre :as timbre]
+  (:require ;; [taoensso.timbre :as timbre]
             [bouncer [core :as b] [validators :as v]]
             [clojure.string :as s] ))
 
 ;; Provides useful Timbre aliases in this ns - maybe move to conf since
 ;; it may e.g. get log-level changed at runtime?
-(timbre/refer-timbre)
+;; (timbre/refer-timbre)
 
 
 (defn line-has-content [text-of-the-line]

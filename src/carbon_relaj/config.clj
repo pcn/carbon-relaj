@@ -40,7 +40,7 @@
 
 
 (defn parse-int [maybe-a-string]
-  (println "Trying the number " maybe-a-string)
+  ;; (println "Trying the number " maybe-a-string)
   (cond
    (number? maybe-a-string) maybe-a-string
    (nil? maybe-a-string) 0
