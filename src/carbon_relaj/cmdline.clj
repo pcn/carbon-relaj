@@ -31,4 +31,6 @@ Options:
   (let [fake-cmdline ["foo" "-h"]]
     (parse-args fake-cmdline)))
 
+
+;;
 (def test-config-cmdline ["foo" "-c" "/some/path/thing"])
