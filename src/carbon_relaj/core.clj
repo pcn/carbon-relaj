@@ -12,30 +12,20 @@
             [gloss.core :as gloss]
             [taoensso.timbre :as timbre]))
 
-
-;; Initialization and sanity checks
 (util/check-jvm-version)
 
 ;; Provides useful Timbre aliases in this ns
-
 ;; XXX: move to conf since it may e.g. get log-level changed at runtime
 (timbre/refer-timbre)
 
-;; ;; Read configuration and command line, make cf/*config* available
-;; (def carbon-channel (async/chan (get (cf/config) :channel-queue-size)))
-;;                                         ; Channel for input of carbon line proto from the network.
-;; (def spool-channel (async/chan (get (cf/config) :channel-queue-size)))
-;;                                         ; Channel for metrics to head to disk.
-
 ;; ;; Test with
 ;; ;; (-main) (async/>!! spool-channel ["a.b.c.d" ((files/make-time-map) :float)  ((files/make-time-map) :float)])
-
 (defn -main [& args]
   (let [cmdline-args (carbon-relaj.cmdline/parse-args args)
         local-config (cf/config)]
     ;; (on-thread #(transport-metric-to-write-channel))
     ;; Debugging log
-    (println "HERE") ;; XXX convert this into an INFO message
-    (println local-config)
+    (info "Start the writer thread")
     (write/thread-write-metrics)
+    (info "Start the listener -> channel")
     (listener/receiver (cf/config))))

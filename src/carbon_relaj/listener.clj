@@ -10,7 +10,8 @@
             [gloss.core :as gloss]))
 
 (async/go
-  (while true (lineproto/read-carbon-line (async/<! chan/carbon-channel))))
+  (while true
+    (lineproto/read-carbon-line (async/<! chan/carbon-channel))))
 
 ;; based on the aleph example tcp service at
 ;; https://github.com/ztellman/aleph/wiki/TCP
@@ -19,9 +20,10 @@
 identifying client-info"
   ;; (println ch)
   (lamina/receive-all ch
-                      #(async/>!! chan/carbon-channel { :line % :client-info client-info})))
-
+                      #(async/>!! chan/carbon-channel
+                                  { :line % :client-info client-info})))
 
 (defn receiver [config]
-  (aleph/start-tcp-server carbon-receiver {:port (get (cf/config) :lineproto-port)
-                                           :frame (gloss.core/string :utf-8 :delimiters ["\n"])}))
+  (aleph/start-tcp-server carbon-receiver
+                          {:port (get (cf/config) :lineproto-port)
+                           :frame (gloss.core/string :utf-8 :delimiters ["\n"])}))
