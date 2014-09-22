@@ -5,14 +5,12 @@
             [carbon-relaj.files :as files]
             [carbon-relaj.util :as util]
             [carbon-relaj.config :as cf]
-            [carbon-relaj.sanitize :as sanitize]
             [carbon-relaj.listener :as listener]
-            [carbon-relaj.write :as wr]
+            [carbon-relaj.write :as write]
             [lamina.core :as lamina]
             [aleph.tcp :as aleph]
             [gloss.core :as gloss]
-            [taoensso.timbre :as timbre]
-            [clojure.string :as s]))
+            [taoensso.timbre :as timbre]))
 
 
 ;; Initialization and sanity checks
@@ -23,19 +21,14 @@
 ;; XXX: move to conf since it may e.g. get log-level changed at runtime
 (timbre/refer-timbre)
 
-;; Read configuration and command line, make cf/*config* available
-;; (cf/read-config)
-(def carbon-channel (async/chan (get (cf/config) :channel-queue-size)))
-                                        ; Channel for input of carbon line proto from the network.
-(def spool-channel (async/chan (get (cf/config) :channel-queue-size)))
-                                        ; Channel for metrics to head to disk.
+;; ;; Read configuration and command line, make cf/*config* available
+;; (def carbon-channel (async/chan (get (cf/config) :channel-queue-size)))
+;;                                         ; Channel for input of carbon line proto from the network.
+;; (def spool-channel (async/chan (get (cf/config) :channel-queue-size)))
+;;                                         ; Channel for metrics to head to disk.
 
 ;; ;; Test with
 ;; ;; (-main) (async/>!! spool-channel ["a.b.c.d" ((files/make-time-map) :float)  ((files/make-time-map) :float)])
-;; From server-socket.
-(defn on-thread [f]
-  (doto (Thread. ^Runnable f)
-    (.start)))
 
 (defn -main [& args]
   (let [cmdline-args (carbon-relaj.cmdline/parse-args args)

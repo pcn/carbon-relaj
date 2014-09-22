@@ -2,7 +2,8 @@
   (:require [clojure.core.async :as async]
             [carbon-relaj.files :as files]
             [carbon-relaj.config :as cf]
-            [carbon-relaj.core :as cr-core]))
+            [carbon-relaj.channels :as chan]
+            [carbon-relaj.util :as util]))
 ;; was write-metric-to-file
 (defn transport-metric-to-write-channel
   "Pulls a metric off of the async channel.
@@ -20,7 +21,7 @@
   []
   (let [local-cf (cf/config)
         cf-timeout (local-cf :channel-timeout)
-        spool cr-core/spool-channel
+        spool chan/spool-channel
         writer files/write-json-to-file
         new-file-map files/make-empty-file-map
         rotate files/rotate-file-map]
@@ -37,4 +38,4 @@
 (defn thread-write-metrics
   "Write metrics from a channel to a rotating file, on an independent thread"
   []
-  (on-thread #(transport-metric-to-write-channel)))
+  (util/on-thread #(transport-metric-to-write-channel)))

@@ -1,4 +1,11 @@
-(ns carbon-relaj.carbon)
+(ns carbon-relaj.lineproto
+  (:use [clojure.tools.logging :only (debug info warn error)])
+  (:require [clojure.core.async :as async]
+            [carbon-relaj.util :as util]
+            [carbon-relaj.channels :as chan]
+            [clojure.string :as s]
+            [carbon-relaj.sanitize :as sanitize]
+            [taoensso.timbre :as timbre]))
 
 
 ;; Module for handling the carbon line protocol's textual representation
@@ -27,5 +34,5 @@
           value (get metric-list 1)
           timestamp (get metric-list 2)]
       ;; (println (str "[metric-name value timestamp] is " metric-name " " value " " timestamp))
-      (async/go (async/>! spool-channel
+      (async/go (async/>! chan/spool-channel
                           [metric-name value timestamp])))))

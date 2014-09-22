@@ -1,14 +1,16 @@
 (ns carbon-relaj.listener
   (:require [clojure.core.async :as async]
             [carbon-relaj.util :as util]
-            [carbon-relaj.core :as cr-core]
+            [carbon-relaj.channels :as chan]
+            [carbon-relaj.config :as cf]
             [carbon-relaj.sanitize :as sanitize]
+            [carbon-relaj.lineproto :as lineproto]
             [lamina.core :as lamina]
             [aleph.tcp :as aleph]
             [gloss.core :as gloss]))
 
 (async/go
-  (while true (read-carbon-line (async/<! cr-core/carbon-channel))))
+  (while true (lineproto/read-carbon-line (async/<! chan/carbon-channel))))
 
 ;; based on the aleph example tcp service at
 ;; https://github.com/ztellman/aleph/wiki/TCP
@@ -17,7 +19,7 @@
 identifying client-info"
   ;; (println ch)
   (lamina/receive-all ch
-                      #(async/>!! carbon-channel { :line % :client-info client-info})))
+                      #(async/>!! chan/carbon-channel { :line % :client-info client-info})))
 
 
 (defn receiver [config]

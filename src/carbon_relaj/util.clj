@@ -23,3 +23,7 @@
      (str "This jre doesn't provide you with the ability to do hard links.  Use java versions >=1.7.\n"
           "Exiting with a sad face.  :(\n")
      100)))
+
+(defn on-thread [f]
+  (doto (Thread. ^Runnable f)
+    (.start)))
