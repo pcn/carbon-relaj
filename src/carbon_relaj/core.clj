@@ -1,15 +1,10 @@
 (ns carbon-relaj.core
   (:gen-class :main true)
   (:use [clojure.main :only (repl)])
-  (:require [clojure.core.async :as async]
-            [carbon-relaj.files :as files]
-            [carbon-relaj.util :as util]
+  (:require [carbon-relaj.util :as util]
             [carbon-relaj.config :as cf]
             [carbon-relaj.listener :as listener]
             [carbon-relaj.write :as write]
-            [lamina.core :as lamina]
-            [aleph.tcp :as aleph]
-            [gloss.core :as gloss]
             [taoensso.timbre :as timbre]))
 
 (util/check-jvm-version)
@@ -27,5 +22,5 @@
     ;; Debugging log
     (info "Start the writer thread")
     (write/thread-write-metrics)
-    (info "Start the listener -> channel")
+    (info "Start the listener -> channel<")
     (listener/receiver (cf/config))))

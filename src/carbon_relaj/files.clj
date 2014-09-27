@@ -1,7 +1,6 @@
 (ns carbon-relaj.files
   (:gen-class)
-  (:use [clojure.main :only (repl)]
-        [clojure.tools.logging :only (debug info warn error)])
+  (:use [clojure.tools.logging :only (debug info warn error)])
   (:require [clojure.core.async :as async]
             [me.raynes.fs :as fs]
             [clojure.data.json :as json]))
@@ -30,7 +29,7 @@ System/currentTimeMillis"
 (defn make-file-name [prefix thread-id time]
   "Create a file based on the id of the thread, and the current time "
   (let [sec (time :seconds) ms (time :ms)]
-        (str prefix "/" thread-id "-" sec "." (format "%03d" ms))))
+    (str prefix "/" thread-id "-" sec "." (format "%03d" ms))))
 
 (defn make-empty-file-map
   "The new spool file mapping, containing the info I need
@@ -73,11 +72,15 @@ now-obsoleted file and return a new empty file map"
 (defn update-file-map [config file-map]
   "Call this to return a file map - either a new one if there isn't one,
    or the current one if it's in use"
+  (debug config)
+
   (if (nil? (file-map :writable-file))
     (let [the-time (make-time-map)
           this-thread-id (.getId (Thread/currentThread))
           new-file-name (make-file-name (config :temp-dir) this-thread-id the-time)
           new-writable-file (clojure.java.io/writer new-file-name)]
+      (print "The temp dir name is ")
+      (println new-file-name)
       (assoc-in
        (assoc-in
         (assoc-in file-map [:file-name] new-file-name)
