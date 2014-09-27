@@ -75,12 +75,14 @@ now-obsoleted file and return a new empty file map"
    or the current one if it's in use"
   (if (nil? (file-map :writable-file))
     (let [the-time (make-time-map)
-          this-thread (.getId (Thread/currentThread))
-          new-file-name (make-file-name (config :temp-dir) this-thread the-time)
+          this-thread-id (.getId (Thread/currentThread))
+          new-file-name (make-file-name (config :temp-dir) this-thread-id the-time)
           new-writable-file (clojure.java.io/writer new-file-name)]
-      (assoc-in (assoc-in (assoc-in file-map [:file-name] new-file-name)
-                          [:the-time] the-time)
-                [:writable-file] new-writable-file))
+      (assoc-in
+       (assoc-in
+        (assoc-in file-map [:file-name] new-file-name)
+        [:the-time] the-time)
+       [:writable-file] new-writable-file))
     file-map))
 
 (defn write-json-to-file [config prior-file-map data]
